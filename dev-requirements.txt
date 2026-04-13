@@ -1,0 +1,15 @@
+# Local development requirements
+# Install dependencies from local packages instead of remote git repos
+
+# Local packages (development only)
+-e /home/gandalf/development/open-qe-automation/package.utils
+-e /home/gandalf/development/open-qe-automation/package.data.loaders
+
+# Third-party dependencies
+openai
+pinecone
+pymongo
+nltk
+chromadb
+psycopg2-binary
+pytest
