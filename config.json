@@ -1,10 +1,13 @@
 {
     "input_directories": [
-      "/Users/msuliot/text_output"
+        "../share/text_output"
     ],
-    "database": "blades-of-grass-demo",
-    "namespace": "demo24",
+    "database": "rag-system",
+    "namespace": "banking",
     "chunk_size": 1800, 
     "chuck_extension_limit": 248,
-    "scheduler_interval": 60
+    "scheduler_interval": 60,
+    "embedding_provider": "ollama",
+    "embedding_model": "mxbai-embed-large",
+    "embedding_base_url": "http://localhost:11434"
 }

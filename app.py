@@ -6,12 +6,23 @@ import re
 # from glob import globp
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
-import helpers.openai_helper as oai 
-from helpers.mongo_helper import MongoDatabase 
-# from helpers.pinecone_helper import Pinecone 
-from pinecone import Pinecone, ServerlessSpec
-from msuliot.base_64 import Base64 # https://github.com/msuliot/package.utils.git
 
+# Import embedding manager (supports Ollama/OpenAI)
+from helpers.embedding_manager import create_embedding_manager
+
+# Optional: Cloud providers (for backward compatibility)
+try:
+    import helpers.openai_helper as oai 
+    from helpers.mongo_helper import MongoDatabase 
+    from pinecone import Pinecone, ServerlessSpec
+except ImportError:
+    oai = None
+    MongoDatabase = None
+    Pinecone = None
+
+from msuliot.base_64 import Base64
+
+# Load config
 from env_config import envs
 env = envs()
 
@@ -66,7 +77,9 @@ def find_text_files(input_directories):
 def chunk_and_save_files(config):
     processed_files_count = 0
     total_chunks_created = 0
-    oaie = oai.openai_embeddings(env.openai_key, "text-embedding-3-small")
+    
+    # Use EmbeddingManager (supports Ollama/OpenAI based on config)
+    oaie = create_embedding_manager(config)
 
     file_paths = find_text_files(config['input_directories'])
     chunk_size = config['chunk_size']
