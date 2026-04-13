@@ -6,12 +6,29 @@ import re
 # from glob import globp
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
-import helpers.openai_helper as oai 
-from helpers.mongo_helper import MongoDatabase 
-# from helpers.pinecone_helper import Pinecone 
-from pinecone import Pinecone, ServerlessSpec
-from msuliot.base_64 import Base64 # https://github.com/msuliot/package.utils.git
 
+# Import embedding manager (supports Ollama/OpenAI)
+from helpers.embedding_manager import create_embedding_manager
+
+# Import vector DB manager (supports ChromaDB/Pinecone)
+from helpers.vector_db_manager import create_vector_db_manager
+
+# Import metadata DB manager (supports PostgreSQL/MongoDB)
+from helpers.metadata_db_manager import create_metadata_db_manager
+
+# Optional: Cloud providers (for backward compatibility)
+try:
+    import helpers.openai_helper as oai 
+    from helpers.mongo_helper import MongoDatabase 
+    from pinecone import Pinecone, ServerlessSpec
+except ImportError:
+    oai = None
+    MongoDatabase = None
+    Pinecone = None
+
+from msuliot.base_64 import Base64
+
+# Load config
 from env_config import envs
 env = envs()
 
@@ -66,7 +83,12 @@ def find_text_files(input_directories):
 def chunk_and_save_files(config):
     processed_files_count = 0
     total_chunks_created = 0
-    oaie = oai.openai_embeddings(env.openai_key, "text-embedding-3-small")
+    
+    # Use EmbeddingManager (supports Ollama/OpenAI based on config)
+    oaie = create_embedding_manager(config)
+    
+    # Use VectorDBManager (supports ChromaDB/Pinecone based on config)
+    vector_db = create_vector_db_manager(config)
 
     file_paths = find_text_files(config['input_directories'])
     chunk_size = config['chunk_size']
@@ -75,6 +97,17 @@ def chunk_and_save_files(config):
     database = config['database']
     print("\nDatabase:", database)
     print("Namespace:", namespace)
+
+    # Use MetadataDBManager (PostgreSQL or MongoDB)
+    # Note: ChromaDB stores documents but we use separate DB for full metadata
+    metadata_provider = config.get("metadata_db_provider", "postgresql")
+    metadata_db = None
+    
+    if metadata_provider != "none":
+        try:
+            metadata_db = create_metadata_db_manager(config)
+        except Exception as e:
+            print(f"Warning: Metadata DB not available: {e}")
 
     for filepath in file_paths:
         print(".", end="", flush=True)
@@ -117,24 +150,29 @@ def chunk_and_save_files(config):
                 chunks.append(text[:boundary])
                 text = text[boundary:]
 
-        pinecone_objects = []
-        mongo_objects = {
-                "_id": Base64.encode(original_filename),
-                "source": original_filename,
-                "data":[]
-            }
+        vector_objects = []
+        metadata_objects = {
+            "_id": Base64.encode(original_filename),
+            "source": original_filename,
+            "data": []
+        }
 
         for i, chunk in enumerate(chunks, 1):
             unique_chunk_id = generate_chunk_id(original_filename, i)
             values = oaie.execute(preprocess_text(chunk))
 
-            if not values.data:
+            if not values or not values.get("data"):
                 print(f"Chunk {i} failed to create embeddings.")
                 continue
 
-            pinecone_object = {
+            # Extract embedding from response
+            embedding_data = values.get("data", [{}])[0] if values else {}
+            embedding = embedding_data.get("embedding", [])
+            
+            vector_object = {
                 "id": unique_chunk_id,
-                "values": values.data[0].embedding,
+                "values": embedding,
+                "text": chunk,  # Store chunk text
                 "metadata": {
                     "parent_id": Base64.encode(original_filename),
                     "source": original_filename,
@@ -142,62 +180,30 @@ def chunk_and_save_files(config):
                 }
             }
 
-            mongo_objects["data"].append(
-                {
-                    "chunk_id": unique_chunk_id,
-                    "chunk_number": i,
-                    "text": chunk,
-                }
-            )
+            vector_objects.append(vector_object)
+            
+            # Store chunk text for retrieval
+            metadata_objects["data"].append({
+                "chunk_id": unique_chunk_id,
+                "chunk_number": i,
+                "text": chunk,
+            })
 
-            pinecone_objects.append(pinecone_object)
 
+        # Save to Vector DB (ChromaDB or Pinecone)
+        vector_results = vector_db.upsert(vector_objects, namespace=namespace)
+        print(f"Upserted {len(chunks)} chunks to {vector_db.get_provider()} for {original_filename}")
+        
+        # Save metadata (chunk text) only if external metadata DB configured
+        if metadata_db:
+            try:
+                metadata_db.save_chunks(database, namespace, metadata_objects)
+                print(f"Saved {len(chunks)} chunks to {metadata_db.get_provider()} metadata")
+            except Exception as e:
+                print(f"Error saving to metadata DB: {e}")
 
-        try:
-            with MongoDatabase(env.mongo_uri) as client:
-                mongo_results = client.insert_or_update_chunk(database, namespace, mongo_objects)
-
-        except Exception as e:
-            print(f"Error upserting to MongoDB: {e}")
-            continue
-        else:
-            print(f"Upserted {len(chunks)} chunks to MongoDB for {original_filename}")
-
-            pc = Pinecone(api_key=env.pinecone_key)
-            index = pc.Index(database)
-            results = index.upsert(vectors=pinecone_objects, namespace=namespace)
-
-            print(f"Upserted {results.upserted_count} chunks to Pinecone for {original_filename}")
-                  
-            if mongo_results.matched_count > 0:
-                # Query to filter by metadata
-                last_chuck_id = generate_chunk_id(original_filename, len(chunks))
-                query_response = index.query(
-                    id=last_chuck_id,
-                    namespace=namespace,
-                    filter={
-                        "parent_id": {"$eq": Base64.encode(original_filename)},
-                        "chunk_number": {"$gt": len(chunks)}
-                    },
-                    top_k=100,
-                    include_metadata=False,
-                    include_values=False
-                )
-
-                # Extract the IDs of the matches of any orphan chunks
-                if len(query_response.matches) != 0:
-                    ids = []
-                    for match in query_response.matches:
-                        ids.append(match.id)
-
-                    index.delete(
-                        namespace=namespace,
-                        ids=ids
-                    )
-                    print(f".DELETED {len(ids)} orphaned chunks from Pinecone.")
-
-            processed_files_count += 1
-            total_chunks_created += len(chunks)
+        processed_files_count += 1
+        total_chunks_created += len(chunks)
 
         os.remove(filepath)
         

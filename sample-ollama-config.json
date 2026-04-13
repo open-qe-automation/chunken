@@ -11,7 +11,5 @@
     "embedding_model": "nomic-embed-text",
     "embedding_base_url": "http://localhost:11434",
     "vector_db_provider": "chroma",
-    "chroma_persist_directory": "../share/chroma_db",
-    "metadata_db_provider": "postgresql",
-    "postgresql_connection_string": "postgresql://postgres:ragpassword@localhost:5432/rag"
+    "chroma_persist_directory": "../share/chroma_db"
 }

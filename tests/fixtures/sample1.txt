@@ -1,0 +1,9 @@
+This is a sample text file for testing the chunking functionality.
+It contains multiple sentences. Each sentence helps with chunking at sentence boundaries.
+This is another sentence in the same file. Testing chunk size limits.
+
+Date: 2024-01-15
+Phone: 555-123-4567
+https://example.com/page
+
+End of test file.
