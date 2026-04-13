@@ -171,12 +171,12 @@ def chunk_and_save_files(config):
             
             # Store chunk text for retrieval (build metadata object)
             if i == 1:
-                mongo_objects = {
+                metadata_objects = {
                     "_id": Base64.encode(original_filename),
                     "source": original_filename,
                     "data": []
                 }
-            mongo_objects["data"].append({
+            metadata_objects["data"].append({
                 "chunk_id": unique_chunk_id,
                 "chunk_number": i,
                 "text": chunk,
@@ -189,7 +189,7 @@ def chunk_and_save_files(config):
         
         # Save metadata (chunk text) to Metadata DB (PostgreSQL or MongoDB)
         try:
-            metadata_db.save_chunks(database, namespace, mongo_objects)
+            metadata_db.save_chunks(database, namespace, metadata_objects)
             print(f"Saved {len(chunks)} chunks to {metadata_db.get_provider()} metadata")
         except Exception as e:
             print(f"Error saving to metadata DB: {e}")
