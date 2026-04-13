@@ -13,6 +13,9 @@ from helpers.embedding_manager import create_embedding_manager
 # Import vector DB manager (supports ChromaDB/Pinecone)
 from helpers.vector_db_manager import create_vector_db_manager
 
+# Import metadata DB manager (supports PostgreSQL/MongoDB)
+from helpers.metadata_db_manager import create_metadata_db_manager
+
 # Optional: Cloud providers (for backward compatibility)
 try:
     import helpers.openai_helper as oai 
@@ -95,6 +98,9 @@ def chunk_and_save_files(config):
     print("\nDatabase:", database)
     print("Namespace:", namespace)
 
+    # Use MetadataDBManager (supports PostgreSQL/MongoDB)
+    metadata_db = create_metadata_db_manager(config)
+
     for filepath in file_paths:
         print(".", end="", flush=True)
         with open(filepath, 'r', encoding='utf-8') as file:
@@ -157,11 +163,31 @@ def chunk_and_save_files(config):
             }
 
             vector_objects.append(vector_object)
+            
+            # Store chunk text for retrieval (build metadata object)
+            if i == 1:
+                mongo_objects = {
+                    "_id": Base64.encode(original_filename),
+                    "source": original_filename,
+                    "data": []
+                }
+            mongo_objects["data"].append({
+                "chunk_id": unique_chunk_id,
+                "chunk_number": i,
+                "text": chunk,
+            })
 
 
-        # Save using VectorDBManager (ChromaDB or Pinecone)
+        # Save to Vector DB (ChromaDB or Pinecone)
         vector_results = vector_db.upsert(vector_objects, namespace=namespace)
         print(f"Upserted {len(chunks)} chunks to {vector_db.get_provider()} for {original_filename}")
+        
+        # Save metadata (chunk text) to Metadata DB (PostgreSQL or MongoDB)
+        try:
+            metadata_db.save_chunks(database, namespace, mongo_objects)
+            print(f"Saved {len(chunks)} chunks to {metadata_db.get_provider()} metadata")
+        except Exception as e:
+            print(f"Error saving to metadata DB: {e}")
 
         processed_files_count += 1
         total_chunks_created += len(chunks)
