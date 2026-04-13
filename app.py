@@ -143,6 +143,11 @@ def chunk_and_save_files(config):
                 text = text[boundary:]
 
         vector_objects = []
+        mongo_objects = {
+            "_id": Base64.encode(original_filename),
+            "source": original_filename,
+            "data": []
+        }
 
         for i, chunk in enumerate(chunks, 1):
             unique_chunk_id = generate_chunk_id(original_filename, i)
