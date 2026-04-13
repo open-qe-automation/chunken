@@ -19,7 +19,6 @@ class EmbeddingManager:
         else:
             raise ValueError(f"Unknown provider: {provider}")
     
-    # Main method - supports both API styles
     def execute(self, text):
         return self.embed(text)
     
@@ -28,6 +27,15 @@ class EmbeddingManager:
             return self._embed_openai(text)
         elif self.provider == "ollama":
             return self._embed_ollama(text)
+    
+    def _init_ollama(self):
+        # Import local Ollama helper
+        import sys
+        import os
+        sys.path.insert(0, os.path.dirname(__file__))
+        from ollama_helper import OllamaEmbeddings
+        self.client = OllamaEmbeddings(model=self.model, base_url=self.base_url)
+        log.info(f"EmbeddingManager initialized with Ollama: {self.model}")
     
     def _embed_openai(self, text):
         response = self.client.embeddings.create(

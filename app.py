@@ -165,9 +165,13 @@ def chunk_and_save_files(config):
                 print(f"Chunk {i} failed to create embeddings.")
                 continue
 
+            # Extract embedding from response
+            embedding_data = values.get("data", [{}])[0] if values else {}
+            embedding = embedding_data.get("embedding", [])
+            
             vector_object = {
                 "id": unique_chunk_id,
-                "values": values.data[0].embedding,
+                "values": embedding,
                 "metadata": {
                     "parent_id": Base64.encode(original_filename),
                     "source": original_filename,

@@ -11,5 +11,6 @@
     "embedding_model": "llama3.1:latest",
     "embedding_base_url": "http://localhost:11434",
     "vector_db_provider": "chroma",
-    "chroma_persist_directory": "../share/chroma_db"
+    "chroma_persist_directory": "../share/chroma_db",
+    "metadata_db_provider": "none"
 }
