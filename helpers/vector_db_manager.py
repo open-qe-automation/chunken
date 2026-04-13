@@ -19,20 +19,15 @@ class VectorDBManager:
     def _init_chroma(self):
         from .chroma_helper import ChromaDB
         persist_dir = self.config.get("chroma_persist_directory", "./chroma_db")
+        print(f"DEBUG: Initializing ChromaDB at {persist_dir}")
         self.client = ChromaDB(persist_directory=persist_dir)
-        log.info(f"VectorDBManager initialized with ChromaDB: {persist_dir}")
+        log.info(f"ChromaDB initialized at: {persist_dir}")
     
     def _init_pinecone(self):
-        try:
-            from pinecone import Pinecone
-            api_key = self.config.get("pinecone_api_key")
-            index_name = self.config.get("database")
-            self.client = Pinecone(api_key=api_key)
-            self.index = self.client.Index(index_name)
-            log.info(f"VectorDBManager initialized with Pinecone: {index_name}")
-        except ImportError as e:
-            log.error(f"Failed to import Pinecone: {e}")
-            raise
+        from pinecone import Pinecone
+        api_key = self.config.get("pinecone_api_key")
+        self.client = Pinecone(api_key=api_key)
+        log.info("Pinecone initialized")
     
     def upsert(self, vectors, namespace="default"):
         """Insert or update vectors"""
@@ -42,13 +37,23 @@ class VectorDBManager:
             return self._upsert_pinecone(vectors, namespace)
     
     def _upsert_chroma(self, vectors, namespace):
+        print(f"DEBUG: _upsert_chroma called with {len(vectors)} vectors, namespace={namespace}")
+        
         ids = [v["id"] for v in vectors]
         embeddings = [v["values"] for v in vectors]
         metadatas = [v.get("metadata", {}) for v in vectors]
         documents = [v.get("text", "") for v in vectors]
         
+        print(f"DEBUG: ids={len(ids)}, embeddings={len(embeddings)}, docs={len(documents)}")
+        
         collection = self.client.get_or_create_collection(namespace)
-        collection.add(ids=ids, embeddings=embeddings, metadatas=metadatas, documents=documents)
+        
+        try:
+            collection.add(ids=ids, embeddings=embeddings, metadatas=metadatas, documents=documents)
+            print(f"DEBUG: Added {len(ids)} items to collection {namespace}")
+        except Exception as e:
+            print(f"DEBUG: Add failed: {e}")
+            
         return {"upserted_count": len(vectors)}
     
     def _upsert_pinecone(self, vectors, namespace):
@@ -97,7 +102,6 @@ class VectorDBManager:
         """Delete vectors by ID"""
         if self.provider == "chroma":
             collection = self.client.get_or_create_collection(namespace)
-            # ChromaDB doesn't support delete by ID directly
             return {"deleted_count": 0}
         elif self.provider == "pinecone":
             return self.index.delete(ids=ids, namespace=namespace)

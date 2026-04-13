@@ -172,6 +172,7 @@ def chunk_and_save_files(config):
             vector_object = {
                 "id": unique_chunk_id,
                 "values": embedding,
+                "text": chunk,  # Store chunk text
                 "metadata": {
                     "parent_id": Base64.encode(original_filename),
                     "source": original_filename,

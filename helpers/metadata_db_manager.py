@@ -20,9 +20,10 @@ class MetadataDBManager:
     def _init_postgresql(self):
         from .postgres_helper import PostgresDB
         conn_string = self.config.get("connection_string")
+        table_name = self.config.get("table_name", "chunks")
         self.client = PostgresDB(connection_string=conn_string)
         self.client.connect()
-        self.client.create_chunks_table()
+        self.client.create_chunks_table(table_name)
         log.info("MetadataDBManager initialized with PostgreSQL")
     
     def _init_mongodb(self):
@@ -91,7 +92,8 @@ def create_metadata_db_manager(config):
         provider_config = {"mongo_uri": env.mongo_uri}
     elif provider == "postgresql":
         provider_config = {
-            "connection_string": config.get("postgresql_connection_string")
+            "connection_string": config.get("postgresql_connection_string"),
+            "table_name": config.get("database", "chunks")
         }
     
     return MetadataDBManager(provider=provider, config=provider_config)

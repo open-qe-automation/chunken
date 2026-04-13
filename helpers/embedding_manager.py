@@ -28,6 +28,11 @@ class EmbeddingManager:
         elif self.provider == "ollama":
             return self._embed_ollama(text)
     
+    def _init_openai(self):
+        from openai import OpenAI
+        self.client = OpenAI(api_key=self.api_key or os.getenv("OPENAI_API_KEY"))
+        log.info(f"EmbeddingManager initialized with OpenAI: {self.model}")
+    
     def _init_ollama(self):
         # Import local Ollama helper
         import sys

@@ -52,9 +52,12 @@ class PostgresDB:
         self.disconnect()
 
     def create_chunks_table(self, table_name="chunks"):
+        quoted_table = f'"{table_name}"'
+        quoted_idx_source = f'"idx_{table_name}_source"'
+        quoted_idx_parent = f'"idx_{table_name}_parent_id"'
         try:
             query = f"""
-            CREATE TABLE IF NOT EXISTS {table_name} (
+            CREATE TABLE IF NOT EXISTS {quoted_table} (
                 id SERIAL PRIMARY KEY,
                 chunk_id VARCHAR(255) UNIQUE NOT NULL,
                 parent_id VARCHAR(255),
@@ -63,11 +66,19 @@ class PostgresDB:
                 text TEXT,
                 metadata JSONB,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-            CREATE INDEX IF NOT EXISTS idx_{table_name}_source ON {table_name}(source);
-            CREATE INDEX IF NOT EXISTS idx_{table_name}_parent_id ON {table_name}(parent_id);
+            )
             """
             self.cursor.execute(query)
+            self.conn.commit()
+            
+            idx_query = f"CREATE INDEX IF NOT EXISTS {quoted_idx_source} ON {quoted_table}(source)"
+            self.cursor.execute(idx_query)
+            self.conn.commit()
+            
+            idx_query2 = f"CREATE INDEX IF NOT EXISTS {quoted_idx_parent} ON {quoted_table}(parent_id)"
+            self.cursor.execute(idx_query2)
+            self.conn.commit()
+            
             log.info(f"Created table: {table_name}")
             return True
         except Exception as e:
@@ -75,10 +86,11 @@ class PostgresDB:
             return False
 
     def insert_chunks(self, table_name, chunks_data):
+        quoted_table = f'"{table_name}"'
         try:
             for chunk in chunks_data:
                 query = f"""
-                INSERT INTO {table_name} (chunk_id, parent_id, source, chunk_number, text, metadata)
+                INSERT INTO {quoted_table} (chunk_id, parent_id, source, chunk_number, text, metadata)
                 VALUES (%s, %s, %s, %s, %s, %s)
                 ON CONFLICT (chunk_id) DO UPDATE
                 SET text = EXCLUDED.text,
@@ -92,6 +104,7 @@ class PostgresDB:
                     chunk.get("text"),
                     json.dumps(chunk.get("metadata", {}))
                 ))
+            self.conn.commit()
             log.info(f"Inserted {len(chunks_data)} chunks")
             return True
         except Exception as e:
@@ -99,8 +112,9 @@ class PostgresDB:
             return False
 
     def get_chunks_by_parent_id(self, table_name, parent_id):
+        quoted_table = f'"{table_name}"'
         try:
-            query = f"SELECT chunk_id, chunk_number, text FROM {table_name} WHERE parent_id = %s ORDER BY chunk_number"
+            query = f"SELECT chunk_id, chunk_number, text FROM {quoted_table} WHERE parent_id = %s ORDER BY chunk_number"
             self.cursor.execute(query, (parent_id,))
             return self.cursor.fetchall()
         except Exception as e:
@@ -108,8 +122,9 @@ class PostgresDB:
             return None
 
     def get_chunk_by_id(self, table_name, chunk_id):
+        quoted_table = f'"{table_name}"'
         try:
-            query = f"SELECT chunk_id, parent_id, source, chunk_number, text, metadata FROM {table_name} WHERE chunk_id = %s"
+            query = f"SELECT chunk_id, parent_id, source, chunk_number, text, metadata FROM {quoted_table} WHERE chunk_id = %s"
             self.cursor.execute(query, (chunk_id,))
             result = self.cursor.fetchone()
             if result:
