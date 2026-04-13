@@ -9,5 +9,7 @@
     "scheduler_interval": 60,
     "embedding_provider": "ollama",
     "embedding_model": "mxbai-embed-large",
-    "embedding_base_url": "http://localhost:11434"
+    "embedding_base_url": "http://localhost:11434",
+    "vector_db_provider": "chroma",
+    "chroma_persist_directory": "../share/chroma_db"
 }

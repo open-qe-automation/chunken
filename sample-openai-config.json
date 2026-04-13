@@ -8,5 +8,6 @@
     "chuck_extension_limit": 248,
     "scheduler_interval": 60,
     "embedding_provider": "openai",
-    "embedding_model": "text-embedding-3-small"
+    "embedding_model": "text-embedding-3-small",
+    "vector_db_provider": "pinecone"
 }
