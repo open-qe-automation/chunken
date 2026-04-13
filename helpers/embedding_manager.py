@@ -10,6 +10,7 @@ class EmbeddingManager:
         self.model = model
         self.api_key = api_key
         self.base_url = base_url
+        self.client = None
         
         if self.provider == "openai":
             self._init_openai()
@@ -18,21 +19,9 @@ class EmbeddingManager:
         else:
             raise ValueError(f"Unknown provider: {provider}")
     
-    def _init_openai(self):
-        from openai import OpenAI
-        self.client = OpenAI(api_key=self.api_key or os.getenv("OPENAI_API_KEY"))
-        self.model = self.model or "text-embedding-3-small"
-        log.info(f"EmbeddingManager initialized with OpenAI: {self.model}")
-    
-    def _init_ollama(self):
-        try:
-            # Import local helper
-            from .ollama_helper import OllamaEmbeddings
-            self.client = OllamaEmbeddings(model=self.model or "mxbai-embed-large", base_url=self.base_url)
-            log.info(f"EmbeddingManager initialized with Ollama: {self.model}")
-        except ImportError as e:
-            log.error(f"Failed to import Ollama helper: {e}")
-            raise
+    # Main method - supports both API styles
+    def execute(self, text):
+        return self.embed(text)
     
     def embed(self, text):
         if self.provider == "openai":

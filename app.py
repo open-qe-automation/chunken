@@ -98,8 +98,16 @@ def chunk_and_save_files(config):
     print("\nDatabase:", database)
     print("Namespace:", namespace)
 
-    # Use MetadataDBManager (supports PostgreSQL/MongoDB)
-    metadata_db = create_metadata_db_manager(config)
+    # Use MetadataDBManager (PostgreSQL or MongoDB)
+    # Note: ChromaDB stores documents but we use separate DB for full metadata
+    metadata_provider = config.get("metadata_db_provider", "postgresql")
+    metadata_db = None
+    
+    if metadata_provider != "none":
+        try:
+            metadata_db = create_metadata_db_manager(config)
+        except Exception as e:
+            print(f"Warning: Metadata DB not available: {e}")
 
     for filepath in file_paths:
         print(".", end="", flush=True)
@@ -153,7 +161,7 @@ def chunk_and_save_files(config):
             unique_chunk_id = generate_chunk_id(original_filename, i)
             values = oaie.execute(preprocess_text(chunk))
 
-            if not values.data:
+            if not values or not values.get("data"):
                 print(f"Chunk {i} failed to create embeddings.")
                 continue
 
@@ -181,12 +189,13 @@ def chunk_and_save_files(config):
         vector_results = vector_db.upsert(vector_objects, namespace=namespace)
         print(f"Upserted {len(chunks)} chunks to {vector_db.get_provider()} for {original_filename}")
         
-        # Save metadata (chunk text) to Metadata DB (PostgreSQL or MongoDB)
-        try:
-            metadata_db.save_chunks(database, namespace, metadata_objects)
-            print(f"Saved {len(chunks)} chunks to {metadata_db.get_provider()} metadata")
-        except Exception as e:
-            print(f"Error saving to metadata DB: {e}")
+        # Save metadata (chunk text) only if external metadata DB configured
+        if metadata_db:
+            try:
+                metadata_db.save_chunks(database, namespace, metadata_objects)
+                print(f"Saved {len(chunks)} chunks to {metadata_db.get_provider()} metadata")
+            except Exception as e:
+                print(f"Error saving to metadata DB: {e}")
 
         processed_files_count += 1
         total_chunks_created += len(chunks)
