@@ -143,7 +143,7 @@ def chunk_and_save_files(config):
                 text = text[boundary:]
 
         vector_objects = []
-        mongo_objects = {
+        metadata_objects = {
             "_id": Base64.encode(original_filename),
             "source": original_filename,
             "data": []
@@ -169,13 +169,7 @@ def chunk_and_save_files(config):
 
             vector_objects.append(vector_object)
             
-            # Store chunk text for retrieval (build metadata object)
-            if i == 1:
-                metadata_objects = {
-                    "_id": Base64.encode(original_filename),
-                    "source": original_filename,
-                    "data": []
-                }
+            # Store chunk text for retrieval
             metadata_objects["data"].append({
                 "chunk_id": unique_chunk_id,
                 "chunk_number": i,
