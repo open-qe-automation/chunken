@@ -25,6 +25,11 @@ jobs:
           pip install -r requirements.txt
           pip install pinecone pytest
 
+      - name: Download NLTK data
+        run: |
+          source venv/bin/activate
+          python -c "import nltk; nltk.download('stopwords')"
+
       - name: Run tests
         run: |
           source venv/bin/activate
