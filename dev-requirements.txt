@@ -2,12 +2,12 @@
 # Install dependencies from local packages instead of remote git repos
 
 # Local packages (development only)
--e /home/gandalf/development/open-qe-automation/package.utils
--e /home/gandalf/development/open-qe-automation/package.data.loaders
+-e ../package.utils
+-e ../package.data.loaders
+-e ../package.helpers
 
 # Third-party dependencies
 openai
-pinecone
 pymongo
 nltk
 chromadb
