@@ -1,6 +1,8 @@
 git+https://github.com/open-qe-automation/package.utils.git
+git+https://github.com/open-qe-automation/package.helpers.git
 nltk
 pymongo
 openai
-pinecone-client
 python-dotenv
+chromadb
+psycopg2-binary
