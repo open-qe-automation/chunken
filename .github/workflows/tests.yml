@@ -41,3 +41,9 @@ jobs:
         with:
           name: test-report-chunken
           path: report.html
+
+      - name: Show artifact link
+        if: always()
+        run: |
+          echo "## Test Report" >> $GITHUB_STEP_SUMMARY
+          echo "Download: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts#summary" >> $GITHUB_STEP_SUMMARY
