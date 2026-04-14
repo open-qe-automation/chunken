@@ -4,7 +4,7 @@ import pytest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from helpers.vector_db_manager import VectorDBManager, create_vector_db_manager
+from msuliot.vector_db_manager import VectorDBManager, create_vector_db_manager
 
 
 class TestVectorDBManager:

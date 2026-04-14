@@ -4,7 +4,7 @@ import pytest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from helpers.embedding_manager import EmbeddingManager, create_embedding_manager
+from msuliot.embedding_manager import EmbeddingManager, create_embedding_manager
 
 
 class TestEmbeddingManager:

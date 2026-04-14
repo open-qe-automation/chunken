@@ -8,18 +8,18 @@ from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 
 # Import embedding manager (supports Ollama/OpenAI)
-from helpers.embedding_manager import create_embedding_manager
+from msuliot.embedding_manager import create_embedding_manager
 
 # Import vector DB manager (supports ChromaDB/Pinecone)
-from helpers.vector_db_manager import create_vector_db_manager
+from msuliot.vector_db_manager import create_vector_db_manager
 
 # Import metadata DB manager (supports PostgreSQL/MongoDB)
-from helpers.metadata_db_manager import create_metadata_db_manager
+from msuliot.metadata_db_manager import create_metadata_db_manager
 
 # Optional: Cloud providers (for backward compatibility)
 try:
-    import helpers.openai_helper as oai 
-    from helpers.mongo_helper import MongoDatabase 
+    import msuliot.openai_helper as oai 
+    from msuliot.mongo_helper import MongoDatabase 
     from pinecone import Pinecone, ServerlessSpec
 except ImportError:
     oai = None
