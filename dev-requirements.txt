@@ -3,7 +3,6 @@
 
 # Local packages (development only)
 -e ../package.utils
--e ../package.data.loaders
 -e ../package.helpers
 
 # Third-party dependencies
