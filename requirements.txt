@@ -1,4 +1,5 @@
 git+https://github.com/open-qe-automation/package.utils.git
+git+https://github.com/open-qe-automation/package.data.loaders.git
 git+https://github.com/open-qe-automation/package.helpers.git
 nltk
 pymongo
